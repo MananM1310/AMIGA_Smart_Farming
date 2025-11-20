@@ -24,10 +24,32 @@
   <!-- Spawn the generated weed model -->
   <node pkg="gazebo_ros" type="spawn_model" name="spawn_weeds" output="screen"
       args="-file $(find amiga_sim)/models/farm_weeds/model.sdf -sdf -model farm_weeds -x 0 -y 0 -z 0" />
+  
+  <!-- Sim weed oracle: publishes nearest weed on the robot's row -->
+  <node pkg="amiga_sim"
+        type="sim_weed_oracle.py"
+        name="sim_weed_oracle"
+        output="screen">
+    <!-- If you ever change row_spacing, keep this in sync with gen_weeds.py -->
+    <param name="row_spacing" value="1.18" />
+    <param name="robot_model_name" value="amiga_model" />
+  </node>
+
+    <!-- Fake GPS from Gazebo world pose -->
+  <node pkg="amiga_sim"
+        type="sim_fake_gps.py"
+        name="sim_fake_gps"
+        output="screen">
+    <param name="robot_model_name" value="amiga_model" />
+    <!-- Choose whatever farm origin you like later -->
+    <param name="lat0_deg" value="40.1149" />
+    <param name="lon0_deg" value="-88.2249" />
+    <param name="alt0" value="220.0" />
+  </node>
 
   <!-- Spawn the robot model -->
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen"
-        args="-param robot_description -urdf -model amiga_model -x 0.0 -y 0.0 -z 0.0" />
+        args="-param robot_description -urdf -model amiga_model -x -1.87 -y -20.0 -z 0.0" />
 
   <!-- Bridge twist to wheeels -->
   <node pkg="amiga_sim" type="sim_control.py" name="twist_to_wheels" output="screen" />
