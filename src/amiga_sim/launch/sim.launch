@@ -1,16 +1,12 @@
 <launch>
   <arg name="model" default="$(find amiga_sim)/urdf/amiga_model_v1.urdf" />
   <arg name="world_name" default="$(find amiga_sim)/worlds/farm.world"/>
+  <arg name="use_display" default="true" />
+
+  <!-- Ensure Gazebo can find models even if env is unset -->
+  <env name="GAZEBO_MODEL_PATH" value="$(find amiga_sim)/models:$(optenv GAZEBO_MODEL_PATH)" />
 
   <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
-  <rosparam file="$(find amiga_sim)/config/base_control.yaml" command="load" />
-
-  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
-        output="screen" args="joint_state_controller 
-                              br_wheel_joint_velocity_controller
-                              bl_wheel_joint_velocity_controller
-                              fl_wheel_joint_velocity_controller
-                              fr_wheel_joint_velocity_controller" />
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(arg world_name)"/>
@@ -51,9 +47,11 @@
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" output="screen"
         args="-param robot_description -urdf -model amiga_model -x -1.87 -y -20.0 -z 0.0" />
 
-  <!-- Bridge twist to wheeels -->
-  <node pkg="amiga_sim" type="sim_control.py" name="twist_to_wheels" output="screen" />
+  <!-- Convert TwistStamped -> Twist for skid-steer plugin -->
+  <node pkg="amiga_sim" type="cmd_vel_unstamped.py" name="cmd_vel_unstamped" output="screen" />
 
-  <!-- launches rviz -->
-  <include file="$(find amiga_sim)/launch/display.launch" />
+  <!-- launches rviz (optional) -->
+  <group if="$(arg use_display)">
+    <include file="$(find amiga_sim)/launch/display.launch" />
+  </group>
 </launch>

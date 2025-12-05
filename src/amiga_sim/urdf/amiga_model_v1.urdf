@@ -14,6 +14,21 @@
     <child link="base_footprint"/>
     <origin rpy="0 0 0" xyz="-0.6 -0.5 0"/>
   </joint>
+
+  <!-- Wheel center frame (midpoint between left/right wheels) -->
+  <link name="wheel_center">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.001" />
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </link>
+  <joint name="wheel_center_joint" type="fixed">
+    <parent link="base_footprint" />
+    <child link="wheel_center" />
+    <!-- Midpoint of wheel contact geometry (approx) -->
+    <origin xyz="0.593 0.399 0.429" rpy="0 0 0" />
+  </joint>
   
   <link name="base_footprint">
     <inertial>
@@ -1624,26 +1639,24 @@
   </joint>
 
 
-  <gazebo>
-    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so"/>
-  </gazebo>
+  <!-- Removed gazebo_ros_control; using gazebo_ros_diff_drive instead -->
   <transmission name="br_wheel_joint_trans">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="br_wheel_joint">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
     </joint>
     <actuator name="br_wheel_joint_motor">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
   <transmission name="bl_wheel_joint_trans">
     <type>transmission_interface/SimpleTransmission</type>
     <joint name="bl_wheel_joint">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
     </joint>
     <actuator name="bl_wheel_joint_motor">
-      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
@@ -1667,92 +1680,6 @@
       <mechanicalReduction>1</mechanicalReduction>
     </actuator>
   </transmission>
-  <gazebo reference="br_wheel_link">
-    <collision>
-      <surface>
-        <friction>
-          <ode>
-            <mu>20.0</mu>
-            <mu2>20.0</mu2>
-          </ode>
-        </friction>
-        <bounce/>
-        <contact>
-          <ode>
-            <kp>600000.0</kp>
-            <kd>1.0</kd>
-          </ode>
-        </contact>
-      </surface>
-    </collision>
-    <material>Gazebo/DarkGrey</material>
-  </gazebo>
-  <gazebo reference="bl_wheel_link">
-    <collision>
-      <surface>
-        <friction>
-          <ode>
-            <mu>20.0</mu>
-            <mu2>20.0</mu2>
-          </ode>
-        </friction>
-        <bounce/>
-        <contact>
-          <ode>
-            <kp>600000.0</kp>
-            <kd>1.0</kd>
-          </ode>
-        </contact>
-      </surface>
-    </collision>
-    <material>Gazebo/DarkGrey</material>
-  </gazebo>
-  <gazebo reference="fl_wheel_link">
-    <collision>
-      <surface>
-        <friction>
-          <ode>
-            <mu>20.0</mu>
-            <mu2>20.0</mu2>
-          </ode>
-        </friction>
-        <bounce/>
-        <contact>
-          <ode>
-            <kp>600000.0</kp>
-            <kd>1.0</kd>
-          </ode>
-        </contact>
-      </surface>
-    </collision>
-    <material>Gazebo/DarkGrey</material>
-  </gazebo>
-  <gazebo reference="fr_wheel_link">
-    <collision>
-      <surface>
-        <friction>
-          <ode>
-            <mu>20.0</mu>
-            <mu2>20.0</mu2>
-          </ode>
-        </friction>
-        <bounce/>
-        <contact>
-          <ode>
-            <kp>600000.0</kp>
-            <kd>1.0</kd>
-          </ode>
-        </contact>
-      </surface>
-    </collision>
-    <material>Gazebo/DarkGrey</material>
-  </gazebo>
-  <gazebo reference="intelligence_kit_link">
-    <material>Gazebo/Grey</material>
-  </gazebo>
-  <gazebo reference="extra_tube_a_link">
-    <material>Gazebo/Grey</material>
-  </gazebo>
    <gazebo reference="extra_tube_b_link">
     <material>Gazebo/Grey</material>
   </gazebo>
@@ -1783,6 +1710,37 @@
   <gazebo reference="extra_tube_plate_f_link">
     <material>Gazebo/Black</material>
   </gazebo>
+
+  <!-- Diff drive plugin (uses /amiga/cmd_vel_unstamped) -->
+  <gazebo>
+    <plugin name="amiga_diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <alwaysOn>true</alwaysOn>
+      <updateRate>50.0</updateRate>
+      <robotNamespace>/</robotNamespace>
+      <commandTopic>/amiga/cmd_vel_unstamped</commandTopic>
+      <odometryTopic>/sim/skid_odom</odometryTopic>
+      <odometryFrame>odom</odometryFrame>
+      <robotBaseFrame>wheel_center</robotBaseFrame>
+      <publishWheelTF>false</publishWheelTF>
+      <publishTf>false</publishTf>
+      <publishOdom>true</publishOdom>
+      <publishWheelJointState>true</publishWheelJointState>
+      <wheelSeparation>1.104</wheelSeparation>
+      <wheelDiameter>0.432</wheelDiameter>
+      <!-- y>0 joints are on the left in base_link frame -->
+      <leftJoint>fr_wheel_joint</leftJoint>
+      <leftJoint>fl_wheel_joint</leftJoint>
+      <rightJoint>br_wheel_joint</rightJoint>
+      <rightJoint>bl_wheel_joint</rightJoint>
+      <wheelTorque>120.0</wheelTorque>
+      <wheelAcceleration>5.0</wheelAcceleration>
+      <commandTimeout>0.5</commandTimeout>
+      <odometrySource>1</odometrySource>
+      <publishOdomTF>true</publishOdomTF>
+      <rosDebugLevel>na</rosDebugLevel>
+    </plugin>
+  </gazebo>
+
   <gazebo reference="oak_d_camera_2_tube_plate_link">
     <material>Gazebo/Black</material>
   </gazebo>
@@ -1879,7 +1837,7 @@
       <camera name="stereo">
         <horizontal_fov>2.23</horizontal_fov> <!-- ~128° HFOV -->
         <image>
-          <width>1280</width>
+          <width>1280</width>Alt+⏎
           <height>800</height>
           <format>R8G8B8</format>
         </image>

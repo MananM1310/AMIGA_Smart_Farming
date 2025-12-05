@@ -104,25 +104,17 @@ class SimController:
             self.gps_pub.publish(gps_msg)
 
     def boost_linear_power(self, x):
-        k = 1.0
-        return k * x
+        return x
 
     def boost_angular_power(self, x):
-        max_cap = 2.5
-        abs_x = abs(x)
-        if abs_x < 0.01:
-            return x
-        k = 2.181
-        n = 0.754
-        a = k / (abs_x ** n)
-        y = a * abs_x
-        y_capped = min(y, max_cap)
-        return y_capped if x >= 0 else -y_capped
+        # Linear boost to overcome friction
+        return x * 4.0
 
     def cmd_callback(self, msg):
         self.last_cmd_time = rospy.Time.now()
 
-        linear_vel = (msg.twist.linear.x ** 2 + msg.twist.linear.y ** 2) ** 0.5
+        # Use linear.x directly to preserve sign (important for backward motion)
+        linear_vel = msg.twist.linear.x
         angular_vel = msg.twist.angular.z
 
         self.latest_linear_x = linear_vel
@@ -140,8 +132,9 @@ class SimController:
 
         self.pubs['bl'].publish(v_left)
         self.pubs['fl'].publish(v_left)
-        self.pubs['br'].publish(v_right)
-        self.pubs['fr'].publish(v_right)
+        # Invert right wheels because of URDF axis orientation
+        self.pubs['br'].publish(-v_right)
+        self.pubs['fr'].publish(-v_right)
 
     def watchdog_callback(self, event):
         if rospy.Time.now() - self.last_cmd_time > self.cmd_timeout:
